@@ -1,0 +1,106 @@
+// ==UserScript==
+// @name         Open_Genius_For_YoutubeMusic
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @noframes
+// @description  Automatically opens Genius page according to your present Youtube tab dynamically while the mapping is stored on Github: www.github.com/188751671/Open_Genius_For_YoutubeMusic
+// @author       Ace
+// @match        https://www.youtube.com/watch*
+// @grant        GM_xmlhttpRequest
+// @grant        GM_openInTab
+// @grant        GM_getValue
+// @grant        GM_setValue
+// @connect      raw.githubusercontent.com
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // Configuration
+    const JSON_URL = 'https://raw.githubusercontent.com/188751671/Open_Genius_For_YoutubeMusic/refs/heads/main/videoID_To_GeniusURL.json';
+    const CHECK_INTERVAL = 2000; // 2 seconds
+    let processedVideoId = null;
+
+    // Cache configuration
+    const CACHE_KEY = 'geniusMapping';
+    const CACHE_TIMESTAMP_KEY = 'lastRetrivalTime';
+    const CACHE_LIFETIME = 10 * 60 * 1000; // download mapping every 10 minitus
+
+    function extractVideoId() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('v');
+    }
+
+
+    function getCachedMapping(callback) {
+        // Get cached mapping and its timestamp.
+        let cachedMapping = GM_getValue(CACHE_KEY, null);
+        let timestamp = GM_getValue(CACHE_TIMESTAMP_KEY, 0);
+        let now = Date.now();
+
+        // If we have cached data and it is less than CACHE_LIFETIME old, use it.
+        if (cachedMapping && (now - timestamp < CACHE_LIFETIME)) {
+            console.log('Using Cahched JSON');
+            callback(cachedMapping);
+        } else {
+            // Otherwise, fetch new data and update the cache.
+            GM_xmlhttpRequest({
+                method: 'GET',
+                url: JSON_URL,
+                onload: function(response) {
+                    console.log('New Retrived JSON:', response.responseText);
+                    try {
+                        const data = JSON.parse(response.responseText);
+                        // Save the mapping and current timestamp in cache
+                        GM_setValue(CACHE_KEY, data);
+                        GM_setValue(CACHE_TIMESTAMP_KEY, now);
+                        callback(data);
+                    } catch (e) {
+                        console.error('Error parsing JSON:', e);
+                    }
+                },
+                onerror: function(error) {
+                    console.error('Error fetching mapping:', error);
+                }
+            });
+        }
+    }
+
+
+    function openGeniusPage(url) {
+        // Open (or reuse) a tab/window with the name "genius_tab"
+        let tab = window.open(url, 'genius_tab');
+
+//         // if need the redirected Genius_tab having the focus, uncomment this
+//         if (tab) {
+//             tab.focus();
+//         }
+    }
+
+
+    function checkAndOpenLyrics() {
+        let currentVideoId = extractVideoId();
+
+        console.log('Retrived Youtube ID:', currentVideoId);
+
+        if (!currentVideoId || currentVideoId === processedVideoId) return;
+
+        processedVideoId = currentVideoId;
+
+        // mapping is JSON object (Key-Value pairs)
+        getCachedMapping(function(mapping) {
+            if (mapping[currentVideoId]) {
+                const geniusUrl = `https://genius.com/${mapping[currentVideoId]}`;
+                console.log('Retrived geniusURL:', geniusUrl);
+                openGeniusPage(geniusUrl);
+            }
+        });
+    }
+
+
+    console.log('Script is starting....');
+    // Creates a recurring timer that calls the checkAndOpenLyrics function repeatedly with the specified interval
+    setInterval(checkAndOpenLyrics, CHECK_INTERVAL);
+
+})();
+
