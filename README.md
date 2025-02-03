@@ -6,8 +6,11 @@ The dominant Youtube-Genius scripts on market automatically searches on Genius b
 videoID_To_GeniusURL.json is the mapping database that this script read from. Everyone is welcomed to append your YoutubeID and Its Genius URI pairs there.
 
 A few already recorded Youtube songs for you to see how the lyrics tab redirect:
+
 https://www.youtube.com/watch?v=OblL026SvD4
+
 https://www.youtube.com/watch?v=7QCn2Jn1sPY
+
 https://www.youtube.com/watch?v=DfCdkyQyaJ8
 
 "?v=..." part like "OblL026SvD4" is the Youtube video ID.
