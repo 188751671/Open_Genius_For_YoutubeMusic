@@ -14,5 +14,7 @@ https://www.youtube.com/watch?v=7QCn2Jn1sPY
 https://www.youtube.com/watch?v=DfCdkyQyaJ8
 
 "?v=..." part like "OblL026SvD4" is the Youtube video ID.
+
 "Paramore-still-into-you-lyrics" in genius.com/Paramore-still-into-you-lyrics is GeniusID.
+
 Append pairs like this on videoID_To_GeniusURL.json , don't forget to add a tailing , comma.
