@@ -1,7 +1,7 @@
 # Open_Genius_For_YoutubeMusic
 This script automatically opens a Genius lyrics page based on the current YouTube Music tab. If you switch to another song, the existing Genius tab updates to show the new lyrics.
 
-Greasyfork:  https://greasyfork.org/en/scripts/525715-open-genius-for-youtubemusic
+[install it on Greasyfork](https://greasyfork.org/en/scripts/525715-open-genius-for-youtubemusic)
 
 Unlike other YouTube-Genius scripts that rely on automatic searches (which often fetch incorrect lyrics due to duplicate song titles or different versions), this script ensures accuracy by using a predefined mapping list. It also allows you to keep lyrics open on a second screen while watching YouTube in fullscreen.
 
