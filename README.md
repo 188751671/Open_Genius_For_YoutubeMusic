@@ -1,13 +1,13 @@
 # Open_Genius_For_YoutubeMusic
-Automatically opens Genius page according to your current Youtube tab dynamically. If you go to another Youtube video, the old Genius tab will go to its lyrics page automatically.
+This script automatically opens a Genius lyrics page based on the current YouTube Music tab. If you switch to another song, the existing Genius tab updates to show the new lyrics.
 
 Greasyfork:  https://greasyfork.org/en/scripts/525715-open-genius-for-youtubemusic
 
-The dominant Youtube-Genius scripts on market automatically searches on Genius based on Youtube song title, but It often gets the wrong lyrics ( some songs have the same name ) or the wrong version of lyrics (different singers' versions have mutated lyrics), and it can't show the lyrics when you watch fullscreen. So I made this script so that I can put the lyrics tab on my second screen while watching fullscreen.
+Unlike other YouTube-Genius scripts that rely on automatic searches (which often fetch incorrect lyrics due to duplicate song titles or different versions), this script ensures accuracy by using a predefined mapping list. It also allows you to keep lyrics open on a second screen while watching YouTube in fullscreen.
 
-videoID_To_GeniusURL.json is the mapping database that this script read from. Everyone is welcomed to append your YoutubeID and Its Genius URI pairs there.
+The mapping file: [videoID_To_GeniusURL.csv](https://github.com/188751671/Open_Genius_For_YoutubeMusic/blob/main/videoID_To_GeniusURL.csv). To add new songs, simply append entries in the format introduced below.
 
-A few already recorded Youtube songs for you to see how the lyrics tab redirect:
+Example YouTube video links for testing:
 
 https://www.youtube.com/watch?v=OblL026SvD4
 
@@ -15,8 +15,8 @@ https://www.youtube.com/watch?v=7QCn2Jn1sPY
 
 https://www.youtube.com/watch?v=DfCdkyQyaJ8
 
-"?v=..." part like "OblL026SvD4" is the Youtube video ID.
+In each link, the part after v= (e.g., OblL026SvD4) is the YouTube video ID.
 
-"Paramore-still-into-you-lyrics" in genius.com/Paramore-still-into-you-lyrics is GeniusID.
+For Genius links, the relevant part is the tail, e.g., "Paramore-still-into-you-lyrics" in: https://www.genius.com/Paramore-still-into-you-lyrics
 
-Append pairs like this on videoID_To_GeniusURL.json , don't forget to add a tailing , comma.
+so "OblL026SvD4,Paramore-still-into-you-lyrics" is the entry in the CSV.
