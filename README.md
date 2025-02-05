@@ -5,7 +5,7 @@ This script automatically opens a Genius lyrics page based on the current YouTub
 
 Unlike other YouTube-Genius scripts that rely on automatic searches (which often fetch incorrect lyrics due to duplicate song titles or different versions), this script ensures accuracy by using a predefined mapping list. It also allows you to keep lyrics open on a second screen while watching YouTube in fullscreen.
 
-The mapping file: [videoID_To_GeniusURL.csv](https://github.com/188751671/Open_Genius_For_YoutubeMusic/blob/main/videoID_To_GeniusURL.csv). To add new songs, simply append entries in the format introduced below.
+The mapping file: [videoID_To_GeniusURL.csv](https://github.com/188751671/Open_Genius_For_YoutubeMusic/blob/main/videoID_To_GeniusURL.csv) is where the script read from. To add new songs, simply append entries in the format introduced below.
 
 Example YouTube video links for testing:
 
