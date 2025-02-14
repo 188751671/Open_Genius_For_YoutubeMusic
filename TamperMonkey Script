@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         Open_Genius_For_YoutubeMusic
 // @namespace    http://tampermonkey.net/
-// @version      1.0
-// @noframes
-// @description  Automatically opens Genius page according to your present Youtube tab dynamically while the mapping is stored on Github: www.github.com/188751671/Open_Genius_For_YoutubeMusic
+// @version      3.0
+// @description  Automatically opens the Genius page for YouTube music and adjusts the Genius layout.
 // @author       Ace
 // @match        https://www.youtube.com/watch*
+// @match        https://genius.com/*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_openInTab
 // @grant        GM_getValue
@@ -16,91 +16,137 @@
 (function() {
     'use strict';
 
-    // Configuration
-    const JSON_URL = 'https://raw.githubusercontent.com/188751671/Open_Genius_For_YoutubeMusic/refs/heads/main/videoID_To_GeniusURL.json';
-    const CHECK_INTERVAL = 2000; // 2 seconds
-    let processedVideoId = null;
+    const host = window.location.host;
 
-    // Cache configuration
-    const CACHE_KEY = 'geniusMapping';
-    const CACHE_TIMESTAMP_KEY = 'lastRetrivalTime';
-    const CACHE_LIFETIME = 10 * 60 * 1000; // download mapping every 10 minitus
+    // ---------------------
+    // Code for YouTube pages
+    // ---------------------
+    if (host.includes('youtube.com')) {
+        // Configuration for CSV mapping
+        const CSV_URL = 'https://raw.githubusercontent.com/188751671/Open_Genius_For_YoutubeMusic/refs/heads/main/videoID_To_GeniusURL.csv';
+        const CHECK_INTERVAL = 2000; // 2 seconds
+        let processedVideoId = null;
 
-    function extractVideoId() {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get('v');
-    }
+        // Cache configuration
+        const CACHE_KEY = 'geniusMapping';
+        const CACHE_TIMESTAMP_KEY = 'lastRetrivalTime';
+        const CACHE_LIFETIME = 10 * 60 * 1000; // 10 minutes
 
+        function extractVideoId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('v');
+        }
 
-    function getCachedMapping(callback) {
-        // Get cached mapping and its timestamp.
-        let cachedMapping = GM_getValue(CACHE_KEY, null);
-        let timestamp = GM_getValue(CACHE_TIMESTAMP_KEY, 0);
-        let now = Date.now();
+        function getCachedMapping(callback) {
+            let cachedMapping = GM_getValue(CACHE_KEY, null);
+            let timestamp = GM_getValue(CACHE_TIMESTAMP_KEY, 0);
+            let now = Date.now();
 
-        // If we have cached data and it is less than CACHE_LIFETIME old, use it.
-        if (cachedMapping && (now - timestamp < CACHE_LIFETIME)) {
-            console.log('Using Cahched JSON');
-            callback(cachedMapping);
-        } else {
-            // Otherwise, fetch new data and update the cache.
-            GM_xmlhttpRequest({
-                method: 'GET',
-                url: JSON_URL,
-                onload: function(response) {
-                    console.log('New Retrived JSON:', response.responseText);
-                    try {
-                        const data = JSON.parse(response.responseText);
-                        // Save the mapping and current timestamp in cache
-                        GM_setValue(CACHE_KEY, data);
-                        GM_setValue(CACHE_TIMESTAMP_KEY, now);
-                        callback(data);
-                    } catch (e) {
-                        console.error('Error parsing JSON:', e);
+            if (cachedMapping && (now - timestamp < CACHE_LIFETIME)) {
+                console.log('Using Cached CSV');
+                callback(cachedMapping);
+            } else {
+                GM_xmlhttpRequest({
+                    method: 'GET',
+                    url: CSV_URL,
+                    onload: function(response) {
+                        console.log('New Retrieved CSV:', response.responseText);
+                        try {
+                            const data = parseCSV(response.responseText, true);
+                            GM_setValue(CACHE_KEY, data);
+                            GM_setValue(CACHE_TIMESTAMP_KEY, now);
+                            callback(data);
+                        } catch (e) {
+                            console.error('Error parsing CSV:', e);
+                        }
+                    },
+                    onerror: function(error) {
+                        console.error('Error fetching mapping:', error);
                     }
-                },
-                onerror: function(error) {
-                    console.error('Error fetching mapping:', error);
+                });
+            }
+        }
+
+        // CSV Parsing Function: skips empty rows and trims spaces
+        function parseCSV(csvString, skipHeader = false) {
+            let rows = csvString
+                .trim()
+                .split("\n")
+                .map(row => row.trim())
+                .filter(row => row !== "")
+                .map(row => row.split(",").map(item => item.trim()));
+
+            return skipHeader ? rows.slice(1) : rows;
+        }
+
+        function openGeniusPage(url) {
+            // Open (or reuse) a tab/window with the name "genius_tab"
+            let tab = window.open(url, 'genius_tab');
+            // Uncomment the next line to bring focus to the Genius tab if needed:
+            // if (tab) tab.focus();
+        }
+
+        function getGeniusUrl(csvArray, videoId) {
+            const foundRow = csvArray.find(row => row[0] === videoId);
+            return foundRow ? `https://genius.com/${foundRow[1]}` : null;
+        }
+
+        function checkAndOpenLyrics() {
+            let currentVideoId = extractVideoId();
+            console.log('Retrieved YouTube ID:', currentVideoId);
+
+            if (!currentVideoId || currentVideoId === processedVideoId) return;
+            processedVideoId = currentVideoId;
+
+            getCachedMapping(function(mapping) {
+                const geniusUrl = getGeniusUrl(mapping, currentVideoId);
+                if (geniusUrl) {
+                    console.log('Retrieved Genius URL:', geniusUrl);
+                    openGeniusPage(geniusUrl);
+                } else {
+                    console.warn('Video ID not found in CSV, not opening Genius.');
                 }
             });
         }
+
+        console.log('YouTube Script is starting...');
+        setInterval(checkAndOpenLyrics, CHECK_INTERVAL);
     }
 
+    // ---------------------
+    // Code for Genius pages
+    // ---------------------
+    else if (host.includes('genius.com')) {
+        const style = document.createElement('style');
+        style.innerHTML = `
+          /* Set up the main container as a two-column grid with a 5% left margin (for a total 10% gap on the left) */
+          #lyrics-root {
+              display: grid !important;
+              grid-template-columns: 1fr 250px !important;
+              gap: 10px;
+              margin-left: 5% !important;
+              width: 90% !important;
+          }
 
-    function openGeniusPage(url) {
-        // Open (or reuse) a tab/window with the name "genius_tab"
-        let tab = window.open(url, 'genius_tab');
+          /* Make the header and footer span both columns */
+          #lyrics-root > .LyricsHeader-sc-2146e4fc-1,
+          #lyrics-root > .LyricsFooter-sc-c3476ba7-0 {
+              grid-column: 1 / -1 !important;
+          }
 
-//         // if need the redirected Genius_tab having the focus, uncomment this
-//         if (tab) {
-//             tab.focus();
-//         }
+          /* Place all lyrics containers in the left column */
+          #lyrics-root > div[data-lyrics-container="true"] {
+              grid-column: 1 / 2 !important;
+              max-width: none !important;
+              width: auto !important;
+          }
+
+          /* Place all sidebar blocks in the right column */
+          #lyrics-root > .RightSidebar-sc-29f47c92-0 {
+              grid-column: 2 / 3 !important;
+              width: 250px !important;
+          }
+        `;
+        document.head.appendChild(style);
     }
-
-
-    function checkAndOpenLyrics() {
-        let currentVideoId = extractVideoId();
-
-        console.log('Retrived Youtube ID:', currentVideoId);
-
-        if (!currentVideoId || currentVideoId === processedVideoId) return;
-
-        processedVideoId = currentVideoId;
-
-        // mapping is JSON object (Key-Value pairs)
-        getCachedMapping(function(mapping) {
-            if (mapping[currentVideoId]) {
-                const geniusUrl = `https://genius.com/${mapping[currentVideoId]}`;
-                console.log('Retrived geniusURL:', geniusUrl);
-                openGeniusPage(geniusUrl);
-            }
-        });
-    }
-
-
-    console.log('Script is starting....');
-    // Creates a recurring timer that calls the checkAndOpenLyrics function repeatedly with the specified interval
-    setInterval(checkAndOpenLyrics, CHECK_INTERVAL);
-
 })();
-
