@@ -2,7 +2,7 @@
 // @name         Open_Genius_For_YoutubeMusic
 // @namespace    http://tampermonkey.net/
 // @version      3.0
-// @description  Automatically opens the Genius page for YouTube music and adjusts the Genius layout.
+// @description  Automatically opens the Genius page from YouTube and adjusts the Genius layout and adds a dark mode toggle for Genius.
 // @author       Ace
 // @match        https://www.youtube.com/watch*
 // @match        https://genius.com/*
@@ -10,6 +10,7 @@
 // @grant        GM_openInTab
 // @grant        GM_getValue
 // @grant        GM_setValue
+// @grant        GM_registerMenuCommand
 // @connect      raw.githubusercontent.com
 // ==/UserScript==
 
@@ -22,12 +23,10 @@
     // Code for YouTube pages
     // ---------------------
     if (host.includes('youtube.com')) {
-        // Configuration for CSV mapping
         const CSV_URL = 'https://raw.githubusercontent.com/188751671/Open_Genius_For_YoutubeMusic/refs/heads/main/videoID_To_GeniusURL.csv';
         const CHECK_INTERVAL = 2000; // 2 seconds
         let processedVideoId = null;
 
-        // Cache configuration
         const CACHE_KEY = 'geniusMapping';
         const CACHE_TIMESTAMP_KEY = 'lastRetrivalTime';
         const CACHE_LIFETIME = 10 * 60 * 1000; // 10 minutes
@@ -67,7 +66,6 @@
             }
         }
 
-        // CSV Parsing Function: skips empty rows and trims spaces
         function parseCSV(csvString, skipHeader = false) {
             let rows = csvString
                 .trim()
@@ -79,12 +77,26 @@
             return skipHeader ? rows.slice(1) : rows;
         }
 
+
+        let geniusTab = null;
         function openGeniusPage(url) {
-            // Open (or reuse) a tab/window with the name "genius_tab"
-            let tab = window.open(url, 'genius_tab');
-            // Uncomment the next line to bring focus to the Genius tab if needed:
-            // if (tab) tab.focus();
+            if (geniusTab && !geniusTab.closed) {
+                // Reuse the already opened Genius tab
+                geniusTab.location.href = url;
+                // Try to return focus to the current (YouTube) tab
+                window.focus();
+            } else {
+                // Open a new tab and store the reference
+                geniusTab = window.open(url, 'genius_tab');
+                // Attempt to remove focus from the new tab and bring back YouTube
+                try {
+                    geniusTab.blur();
+                } catch (e) { /* ignore if not allowed */ }
+                window.focus();
+            }
         }
+
+
 
         function getGeniusUrl(csvArray, videoId) {
             const foundRow = csvArray.find(row => row[0] === videoId);
@@ -148,5 +160,42 @@
           }
         `;
         document.head.appendChild(style);
+
+
+        // ---------------------
+        // Dark Mode Toggle
+        // ---------------------
+        let darkModeEnabled = GM_getValue('darkMode', false);
+
+        const darkModeStyles = `
+            body { background-color: #292929; color: #BAB7BA; }
+            .header { background-color: #1f1f1f; }
+            .jAzSMw, .cNCMgo { background-color: #333333!important; color: #BAB7BA; }
+            .cNXXxk, .dddWnX, .hwdUNy { color: #BAB7BA !important; }
+        `;
+
+
+        const darkModeStyleElement = document.createElement('style');
+        darkModeStyleElement.textContent = darkModeStyles;
+
+        function applyDarkMode(state) {
+            if (state) {
+                document.head.appendChild(darkModeStyleElement);
+            } else {
+                if (darkModeStyleElement.parentNode) {
+                    darkModeStyleElement.parentNode.removeChild(darkModeStyleElement);
+                }
+            }
+        }
+
+        applyDarkMode(darkModeEnabled);
+
+        GM_registerMenuCommand(darkModeEnabled ? 'Disable Dark Mode' : 'Enable Dark Mode', () => {
+            darkModeEnabled = !darkModeEnabled;
+            GM_setValue('darkMode', darkModeEnabled);
+            applyDarkMode(darkModeEnabled);
+            location.reload();
+        });
     }
+
 })();
