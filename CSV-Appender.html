@@ -39,21 +39,27 @@
     <button type="submit">Submit</button>
   </form>
 
-  <script>
-    document.getElementById('entryForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const data = {
-        videoID: document.getElementById('videoID').value,
-        geniusURL: document.getElementById('geniusURL').value
-      };
-      
-      // Send data to Netlify Function
-      await fetch('/.netlify/functions/appendEntry', {
+<script>
+  document.getElementById('entryForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = {
+      data: `${document.getElementById('videoID').value}|${document.getElementById('geniusURL').value}`
+    };
+
+    try {
+      const response = await fetch('https://script.google.com/macros/s/AKfycbx4hfpJnqElWr1sqZKgYbyWcSeuGXT_4l6HNyIy1SRKrPl3Uec1hijilKuUn5YfWsDs/exec', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
-      alert('Entry submitted!');
-    });
-  </script>
+      
+      const result = await response.text(); // Google Script returns text
+      alert(result === "Success" ? "Entry submitted!" : "Error occurred");
+      
+    } catch (error) {
+      alert(`Error: ${error.message}`);
+    }
+  });
+</script>
 </body>
 </html>
