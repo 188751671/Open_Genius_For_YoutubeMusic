@@ -2,8 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>VideoId & GeniusID CSV Appender</title>
+  <title>Youtube Video URL & Genius URL upload</title>
   <style>
+    .highlight {
+      color: red;
+      font-weight: bold;
+    }
     /* Center everything vertically and horizontally */
     body {
       display: flex;
@@ -43,40 +47,20 @@
   </style>
 </head>
 <body>
-  <h1>VideoId & GeniusID CSV Appender</h1>
+  <h1>Youtube Video URL & Genius URL upload</h1>
   <div class="instructions">
     <p>
-      Welcome! This page helps you to append YouTubeID & Genius lyrics page mappings.
+      Welcome! This page let you upload your <strong style="color: red;">YouTube video URL</strong> & Its corresponding <strong style="color: red;">Genius lyrics URL</strong>.
     </p>
 
     <p>
-      Once submitted, your mapping will be appended to the CSV stored on GitHub. 
-      The script will then use this CSV to display the correct Genius lyrics page 
-      when you open the associated YouTube video.
+      Once submitted, the script then can pop up the Genius page when you watch the video. 
     </p>
-
-    <ol>
-      <li>
-        <strong>Find the Video ID:</strong><br>
-        In the example of 'Still into you' by Paramore Youtube video: 
-        <br>
-        <code>https://www.youtube.com/watch?v=<span style="color: red; font-weight: bold;">OblL026SvD4</span></code><br>
-        The video ID is the part in red following <code>v=</code>
-      </li>
-      <br>
-      <li>
-        <strong>Find the Genius ID:</strong><br>
-        Search on Genius of 'still into you' and find the lyrics URL:
-        <br>
-        <code>https://genius.com/<span style="color: red; font-weight: bold;">Paramore-still-into-you-lyrics</span></code><br>
-        The Genius Identifier is the last part in red following the backslash
-      </li>
-    </ol>
   </div>
 
   <form id="entryForm">
-    <input type="text" id="videoID" placeholder="Video ID" required autofocus>
-    <input type="text" id="geniusURL" placeholder="Genius Identifier" required>
+    <input type="text" id="videoURL" placeholder="Video URL" required autofocus>
+    <input type="text" id="geniusURL" placeholder="Genius URL" required>
     <button type="submit">Submit</button>
   </form>
 
@@ -84,7 +68,7 @@
     document.getElementById('entryForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const data = {
-        data: `${document.getElementById('videoID').value}|${document.getElementById('geniusURL').value}`
+        data: `${document.getElementById('videoURL').value}|${document.getElementById('geniusURL').value}`
       };
 
       try {
