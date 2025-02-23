@@ -80,18 +80,17 @@
         body: JSON.stringify(formData)
       });
 
-      const data = await response.json();
+      const msg = await response.text();
 
-      // if not 200, let the catch(error) below to deal with it (alert the message)
-      if (!response.ok) throw new Error(data.message);
-
-      // Success with 200  and Clear inputboxes
-      alert(data.message);
-      document.getElementById('entryForm').reset();
-      
+      // if ok 200, clear user input
+      if (response.ok){
+        alert(msg);
+        document.getElementById('entryForm').reset();
+      }
+      else
+        alert(msg);
     } catch (error) {
       alert(error.message);
-      // Keep inputs on error for correction
     }
   });
 </script>
