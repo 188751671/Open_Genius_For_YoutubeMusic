@@ -67,6 +67,10 @@
 <script>
   document.getElementById('entryForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    const submitButton = document.querySelector('#entryForm button[type="submit"]');
+    submitButton.disabled = true; // Disable the button
+
     
     const formData = {
       youtube_url: document.getElementById('youtube_url').value,
@@ -91,6 +95,8 @@
         alert(msg);
     } catch (error) {
       alert(error.message);
+    } finally {
+      submitButton.disabled = false; // Re-enable the button
     }
   });
 </script>
