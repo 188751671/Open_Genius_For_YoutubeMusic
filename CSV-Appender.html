@@ -61,8 +61,8 @@
   <form id="entryForm">
     <input type="text" name="youtube_url" id="youtube_url" placeholder="Youtube URL" required autofocus>
     <input type="text" name="genius_url" id="genius_url" placeholder="Genius URL" required>
+    <div id="loading" style="display: none; color: red;"><strong>Processing...</strong></div>
     <button type="submit">Submit</button>
-    <div id="loading" >Processing...</div>
   </form>
 
 <script>
@@ -70,8 +70,10 @@
     e.preventDefault();
 
     const submitButton = document.querySelector('#entryForm button[type="submit"]');
-    submitButton.disabled = true; // Disable the button
+    const loadingIndicator = document.getElementById('loading');
 
+    submitButton.disabled = true; // Disable the button
+    loadingIndicator.style.display = 'block'; // Show the loading indicator
     
     const formData = {
       youtube_url: document.getElementById('youtube_url').value,
@@ -98,6 +100,7 @@
       alert(error.message);
     } finally {
       submitButton.disabled = false; // Re-enable the button
+      loadingIndicator.style.display = 'none'; // Hide the loading indicator
     }
   });
 </script>
