@@ -1,0 +1,190 @@
+from urllib.parse import urlparse, parse_qs
+import base64
+import time
+import logging
+
+# Third-party libraries: pipenv intall
+import requests
+from flask import Flask, request, jsonify
+
+# 配置日志
+logging.basicConfig(level=logging.INFO, 
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger()
+
+# GitHub配置
+GITHUB_TOKEN = '..........'
+REPO_OWNER = '188751671'
+REPO_NAME = 'Open_Genius_For_YoutubeMusic'
+CSV_FILE_PATH = 'videoID_To_GeniusURL.csv'
+
+# 创建Flask应用
+app = Flask(__name__)
+
+def validate_youtube_url(url):
+    """验证YouTube URL并返回元组 (is_valid, video_id, video_title)"""
+    try:
+        parsed = urlparse(url)
+        if parsed.netloc not in ['www.youtube.com', 'youtube.com']:
+            return False, None, None
+            
+        query = parse_qs(parsed.query)    
+        video_id = query.get('v', [None])[0]
+        
+        if not video_id:
+            return False, None, None
+            
+        # 通过oEmbed API检查
+        oembed_url = f'https://www.youtube.com/oembed?url={url}&format=json'
+        response = requests.get(oembed_url)
+        
+        if response.status_code == 200:
+            # 从oEmbed响应中提取标题
+            data = response.json()
+            video_title = data.get('title', '')
+            return True, video_id, video_title
+        else:
+            return False, None, None
+        
+    except Exception as e:
+        logger.error(f"YouTube验证错误: {e}")
+        return False, None, None
+
+def validate_genius_url(url, youtube_title):
+    """验证Genius URL并返回slug（如果有效）"""
+    try:
+        if not url.startswith('https://genius.com/'):
+            return False, None
+            
+        parsed = urlparse(url)
+        slug = parsed.path.strip('/')
+
+        # 路径总是以'-lyrics'结尾
+        if not slug.endswith('-lyrics'):
+            return False, None
+
+        # 如果可以成功获取页面
+        response = requests.get(url)
+        if response.status_code != 200:
+            return False, None
+        
+        # Genius slug的倒数第二或第三部分必须在Youtube标题中
+        slug_parts = slug.split('-')
+        if len(slug_parts) < 2:
+            return False, None
+        if slug_parts[-2].lower() not in youtube_title.lower():
+            if len(slug_parts) < 3:
+                return False, None
+            if slug_parts[-3].lower() not in youtube_title.lower():
+                return False, None
+        
+        return True, slug
+    
+    except Exception as e:
+        logger.error(f"Genius验证错误: {e}")
+        return False, None
+
+def update_github_csv(video_id, genius_slug):
+    """更新GitHub上的CSV文件，添加新条目"""
+    headers = {
+        'Authorization': f'Bearer {GITHUB_TOKEN}',
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28'
+    }
+    api_url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{CSV_FILE_PATH}'
+
+    # 获取现有文件数据
+    response = requests.get(api_url, headers=headers)
+    
+    if response.status_code != 200:
+        return False, '无法获取CSV文件'
+    
+    file_data = response.json()
+    content = base64.b64decode(file_data['content']).decode('utf-8')
+    sha = file_data['sha']
+
+    # 检查video_id是否已存在
+    if video_id in content:
+        return False, '视频已存在'
+
+    # 添加新条目
+    new_entry = f'{video_id},{genius_slug}\n'
+    new_content = content + new_entry
+    encoded_content = base64.b64encode(new_content.encode('utf-8')).decode('utf-8')
+
+    # 提交更改
+    data = {
+        'message': 'Added New Entry',
+        'content': encoded_content,
+        'sha': sha
+    }
+    
+    response = requests.put(api_url, headers=headers, json=data)
+    return response.status_code in (200, 201), f"成功添加: {genius_slug}"
+
+@app.route('/', methods=['POST', 'OPTIONS'])
+def open_genius():
+    # 处理预检请求
+    if request.method == "OPTIONS":
+        response = jsonify({'status': 'success'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'POST')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Max-Age', '3600')
+        return response
+
+    # 获取JSON格式的表单数据
+    try:
+        form = request.get_json()
+        youtube_url = form.get('youtube_url')
+        genius_url = form.get('genius_url')
+    except Exception as e:
+        logger.error(f"解析请求数据错误: {e}")
+        return jsonify({'error': '无效的请求数据'}), 400
+
+    if not youtube_url or not genius_url:
+        logger.warning("请求中缺少URL")
+        return jsonify({'error': '请求中缺少URL'}), 400
+
+    start_time = time.time()
+    yt_valid, video_id, youtube_title = validate_youtube_url(youtube_url)
+    logger.info(f"验证YouTube URL耗时: {(time.time() - start_time):.3f}秒")
+    
+    if not yt_valid:
+        logger.warning(f"无效的YouTube URL: {youtube_url}")
+        return jsonify({'error': '无效的YouTube URL'}), 400
+
+    start_time = time.time()
+    genius_valid, genius_slug = validate_genius_url(genius_url, youtube_title)
+    logger.info(f"验证Genius URL耗时: {(time.time() - start_time):.3f}秒")
+    
+    if not genius_valid:
+        logger.warning(f"无效的Genius URL: {genius_url}")
+        return jsonify({'error': '无效的Genius URL'}), 400
+
+    start_time = time.time()
+    success, msg = update_github_csv(video_id, genius_slug)
+    logger.info(f"更新GitHub CSV耗时: {(time.time() - start_time):.3f}秒")
+    
+    if not success:
+        logger.error(f"更新CSV失败: {msg}")
+        return jsonify({'error': msg}), 500
+
+    # 返回成功响应
+    response = jsonify({'message': msg})
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
+# 添加健康检查路由
+@app.route('/', methods=['GET'])
+def health_check():
+    return jsonify({
+        'status': 'online',
+        'service': 'Open_Genius_For_YoutubeMusic',
+        'version': '1.0'
+    })
+
+
+if __name__ == '__main__':
+    logger.info("启动Open Genius For YoutubeMusic服务，监听端口8000...")
+    app.run(host='0.0.0.0', port=8000)
