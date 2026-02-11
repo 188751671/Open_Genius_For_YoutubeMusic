@@ -126,34 +126,62 @@
     // ---------------------
     else if (host.includes('genius.com')) {
         const style = document.createElement('style');
-        style.innerHTML = `
-          /* Set up the main container as a two-column grid with a 5% left margin (for a total 10% gap on the left) */
-          #lyrics-root {
-              display: grid !important;
-              grid-template-columns: 1fr 250px !important;
-              gap: 10px;
-              margin-left: 5% !important;
-              width: 90% !important;
-          }
+        style.textContent = `
+        /* 核心：把歌词区做成居中两列布局 */
+        #lyrics-root {
+            --ogm-sidebar-width: 300px;
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) var(--ogm-sidebar-width) !important;
+            gap: 24px !important;
+            width: min(1200px, 94vw) !important;
+            margin: 0 auto !important;
+            align-items: start !important;
+        }
 
-          /* Make the header and footer span both columns */
-          #lyrics-root > .LyricsHeader-sc-2146e4fc-1,
-          #lyrics-root > .LyricsFooter-sc-c3476ba7-0 {
-              grid-column: 1 / -1 !important;
-          }
+        /* 左列：所有歌词块 + 歌词内广告等 */
+        #lyrics-root > [data-lyrics-container="true"],
+        #lyrics-root > [data-exclude-from-selection="true"],
+        #lyrics-root > :not([data-lyrics-container="true"]):not([data-exclude-from-selection="true"]):not([class*="RightSidebar__Container"]):not([class*="LyricsFooter__Container"]) {
+            grid-column: 1 / 2 !important;
+            min-width: 0 !important;
+        }
 
-          /* Place all lyrics containers in the left column */
-          #lyrics-root > div[data-lyrics-container="true"] {
-              grid-column: 1 / 2 !important;
-              max-width: none !important;
-              width: auto !important;
-          }
+        /* 右列：所有右侧栏 */
+        #lyrics-root > [class*="RightSidebar__Container"] {
+            grid-column: 2 / 3 !important;
+            width: var(--ogm-sidebar-width) !important;
+            justify-self: end !important;
+            min-width: 0 !important;
+        }
 
-          /* Place all sidebar blocks in the right column */
-          #lyrics-root > .RightSidebar-sc-29f47c92-0 {
-              grid-column: 2 / 3 !important;
-              width: 250px !important;
-          }
+        /* Footer 跨两列 */
+        #lyrics-root > [class*="LyricsFooter__Container"] {
+            grid-column: 1 / -1 !important;
+        }
+
+        /* 让歌词本体占满左列 */
+        #lyrics-root [data-lyrics-container="true"] {
+            max-width: none !important;
+            width: 100% !important;
+        }
+
+        /* 隐藏页面顶部 banner 广告 */
+        [id^="div-gpt-ad-desktop_song_combined_leaderboard"] {
+            display: none !important;
+        }
+
+        /* 窄屏时改成单列 */
+        @media (max-width: 1100px) {
+            #lyrics-root {
+            grid-template-columns: 1fr !important;
+            width: min(720px, 94vw) !important;
+            }
+            #lyrics-root > [class*="RightSidebar__Container"] {
+            grid-column: 1 / -1 !important;
+            width: 100% !important;
+            justify-self: stretch !important;
+            }
+        }
         `;
         document.head.appendChild(style);
 
