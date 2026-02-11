@@ -47,7 +47,7 @@ def validate_youtube_url(url):
             return False, None, None
         
     except Exception as e:
-        logger.error(f"YouTube验证错误: {e}")
+        logger.error(f"YouTube validation error: {e}")
         return False, None, None
 
 def validate_genius_url(url, youtube_title):
@@ -63,15 +63,15 @@ def validate_genius_url(url, youtube_title):
         if not slug.endswith('-lyrics'):
             return False, None
 
-        # 如果可以成功获取页面
-        response = requests.get(
-            url,
-            # 模拟用户浏览器 给Genius发请求, 避免被检测为脚本 而拒绝
-            headers={"User-Agent": "Mozilla/5.0"},
-            timeout=10
-        )
-        if response.status_code != 200:
-            return False, None
+        # 如果可以成功获取页面 (有时候Genius会拒绝 机器请求, 所以暂时关闭这个检查)
+        # response = requests.get(
+        #     url,
+        #     # 模拟用户浏览器 给Genius发请求, 避免被检测为脚本 而拒绝
+        #     headers={"User-Agent": "Mozilla/5.0"},
+        #     timeout=10
+        # )
+        # if response.status_code != 200:
+        #     return False, None
         
         # Genius slug的倒数第二或第三部分必须在Youtube标题中
         slug_parts = slug.split('-')
@@ -86,7 +86,7 @@ def validate_genius_url(url, youtube_title):
         return True, slug
     
     except Exception as e:
-        logger.error(f"Genius验证错误: {e}")
+        logger.error(f"Genius validation error: {e}")
         return False, None
 
 def update_github_csv(video_id, genius_slug):
@@ -102,7 +102,7 @@ def update_github_csv(video_id, genius_slug):
     response = requests.get(api_url, headers=headers)
     
     if response.status_code != 200:
-        return False, '无法获取CSV文件'
+        return False, 'cannot fetch CSV file'
     
     file_data = response.json()
     content = base64.b64decode(file_data['content']).decode('utf-8')
@@ -110,7 +110,7 @@ def update_github_csv(video_id, genius_slug):
 
     # 检查video_id是否已存在
     if video_id in content:
-        return False, '视频已存在'
+        return False, 'video already exists'
 
     # 添加新条目
     new_entry = f'{video_id},{genius_slug}\n'
@@ -125,7 +125,7 @@ def update_github_csv(video_id, genius_slug):
     }
     
     response = requests.put(api_url, headers=headers, json=data)
-    return response.status_code in (200, 201), f"成功添加: {genius_slug}"
+    return response.status_code in (200, 201), f"added: {genius_slug}"
 
 def cors_json(payload, status=200):
     resp = jsonify(payload)
@@ -138,7 +138,7 @@ def cors_json(payload, status=200):
 def open_genius():
     # 处理预检请求
     if request.method == "OPTIONS":
-        return cors_json({'status': 'success'}, 200)
+        return cors_json({'message': 'success'}, 200)
 
     # 获取JSON格式的表单数据
     try:
@@ -146,36 +146,36 @@ def open_genius():
         youtube_url = form.get('youtube_url')
         genius_url = form.get('genius_url')
     except Exception as e:
-        logger.error(f"解析请求数据错误: {e}")
-        return cors_json({'error': '无效的请求数据'}, 400)
+        logger.error(f"request parse error: {e}")
+        return cors_json({'message': 'invalid request data'}, 400)
 
     if not youtube_url or not genius_url:
-        logger.warning("请求中缺少URL")
-        return cors_json({'error': '请求中缺少URL'}, 400)
+        logger.warning("missing URL")
+        return cors_json({'message': 'missing URL'}, 400)
 
     start_time = time.time()
     yt_valid, video_id, youtube_title = validate_youtube_url(youtube_url)
-    logger.info(f"验证YouTube URL耗时: {(time.time() - start_time):.3f}秒")
+    logger.info(f"YouTube URL validation time: {(time.time() - start_time):.3f}s")
     
     if not yt_valid:
-        logger.warning(f"无效的YouTube URL: {youtube_url}")
-        return cors_json({'error': 'invalid YouTube URL'}, 400)
+        logger.warning(f"invalid YouTube URL: {youtube_url}")
+        return cors_json({'message': 'invalid YouTube URL'}, 400)
 
     start_time = time.time()
     genius_valid, genius_slug = validate_genius_url(genius_url, youtube_title)
-    logger.info(f"验证Genius URL耗时: {(time.time() - start_time):.3f}秒")
+    logger.info(f"Genius URL validation time: {(time.time() - start_time):.3f}s")
     
     if not genius_valid:
-        logger.warning(f"无效的Genius URL: {genius_url}")
-        return cors_json({'error': 'invalid Genius URL'}, 400)
+        logger.warning(f"invalid Genius URL: {genius_url}")
+        return cors_json({'message': 'invalid Genius URL'}, 400)
 
     start_time = time.time()
     success, msg = update_github_csv(video_id, genius_slug)
-    logger.info(f"更新GitHub CSV耗时: {(time.time() - start_time):.3f}秒")
+    logger.info(f"GitHub CSV update time: {(time.time() - start_time):.3f}s")
     
     if not success:
-        logger.error(f"更新CSV失败: {msg}")
-        return cors_json({'error': f'更新CSV失败: {msg}'}, 500)
+        logger.error(f"CSV update failed: {msg}")
+        return cors_json({'message': f'CSV update failed: {msg}'}, 500)
 
     # 返回成功响应
     return cors_json({'message': msg}, 200)
@@ -192,5 +192,5 @@ def health_check():
 
 
 if __name__ == '__main__':
-    logger.info("启动Open Genius For YoutubeMusic服务，监听端口8000...")
+    logger.info("Starting Open Genius For YoutubeMusic service on port 8000...")
     app.run(host='0.0.0.0', port=8000)

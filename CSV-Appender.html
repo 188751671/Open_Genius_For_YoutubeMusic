@@ -64,6 +64,7 @@
     <div id="loading" style="display: none; color: red;"><strong>Processing...</strong></div>
     <button type="submit">Submit</button>
   </form>
+  <div id="msgBox" style="margin-top: 1rem; font-weight: bold;"></div>
 
 <script>
   document.getElementById('entryForm').addEventListener('submit', async (e) => {
@@ -71,9 +72,11 @@
 
     const submitButton = document.querySelector('#entryForm button[type="submit"]');
     const loadingIndicator = document.getElementById('loading');
+    const msgBox = document.getElementById('msgBox');
 
     submitButton.disabled = true; // Disable the button
     loadingIndicator.style.display = 'block'; // Show the loading indicator
+    msgBox.textContent = '';
     
     const formData = {
       youtube_url: document.getElementById('youtube_url').value,
@@ -87,17 +90,22 @@
         body: JSON.stringify(formData)
       });
 
-      const msg = await response.text();
+      const data = await response.json();
+      const msg = data && data.message ? data.message : 'unknown response';
 
       // if ok 200, clear user input
       if (response.ok){
-        alert(msg);
+        msgBox.style.color = 'green';
+        msgBox.textContent = msg;
         document.getElementById('entryForm').reset();
       }
-      else
-        alert(msg);
+      else {
+        msgBox.style.color = 'red';
+        msgBox.textContent = msg;
+      }
     } catch (error) {
-      alert(error.message);
+      msgBox.style.color = 'red';
+      msgBox.textContent = error.message;
     } finally {
       submitButton.disabled = false; // Re-enable the button
       loadingIndicator.style.display = 'none'; // Hide the loading indicator
