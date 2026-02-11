@@ -127,64 +127,51 @@
     else if (host.includes('genius.com')) {
         const style = document.createElement('style');
         style.textContent = `
-        /* 核心：把歌词区做成居中两列布局 */
+        /* 极简：单列居中，聚焦歌词 */
         #lyrics-root {
-            --ogm-sidebar-width: 300px;
-            display: grid !important;
-            grid-template-columns: minmax(0, 1fr) var(--ogm-sidebar-width) !important;
-            gap: 24px !important;
-            width: min(1200px, 94vw) !important;
+            max-width: 760px !important;
             margin: 0 auto !important;
-            align-items: start !important;
+            padding: 0 16px !important;
         }
 
-        /* 左列：所有歌词块 + 歌词内广告等 */
-        #lyrics-root > [data-lyrics-container="true"],
-        #lyrics-root > [data-exclude-from-selection="true"],
-        #lyrics-root > :not([data-lyrics-container="true"]):not([data-exclude-from-selection="true"]):not([class*="RightSidebar__Container"]):not([class*="LyricsFooter__Container"]) {
-            grid-column: 1 / 2 !important;
-            min-width: 0 !important;
-        }
-
-        /* 右列：所有右侧栏 */
-        #lyrics-root > [class*="RightSidebar__Container"] {
-            grid-column: 2 / 3 !important;
-            width: var(--ogm-sidebar-width) !important;
-            justify-self: end !important;
-            min-width: 0 !important;
-        }
-
-        /* Footer 跨两列 */
-        #lyrics-root > [class*="LyricsFooter__Container"] {
-            grid-column: 1 / -1 !important;
-        }
-
-        /* 让歌词本体占满左列 */
+        /* 让歌词本体占满 */
         #lyrics-root [data-lyrics-container="true"] {
             max-width: none !important;
             width: 100% !important;
         }
 
-        /* 隐藏页面顶部 banner 广告 */
-        [id^="div-gpt-ad-desktop_song_combined_leaderboard"] {
+        /* 隐藏右侧栏与各类广告 */
+        #lyrics-root > [class*="RightSidebar__Container"],
+        [data-exclude-from-selection="true"],
+        inread-ad,
+        [id^="div-gpt-ad-"] {
             display: none !important;
-        }
-
-        /* 窄屏时改成单列 */
-        @media (max-width: 1100px) {
-            #lyrics-root {
-            grid-template-columns: 1fr !important;
-            width: min(720px, 94vw) !important;
-            }
-            #lyrics-root > [class*="RightSidebar__Container"] {
-            grid-column: 1 / -1 !important;
-            width: 100% !important;
-            justify-self: stretch !important;
-            }
         }
         `;
         document.head.appendChild(style);
 
+        // ---------------------
+        // Auto jump to lyrics
+        // ---------------------
+        let didScrollToLyrics = false;
+        const tryScrollToLyrics = () => {
+            if (didScrollToLyrics) return true;
+            const target = document.querySelector('#lyrics') ||
+                           document.querySelector('[data-lyrics-container="true"]');
+            if (!target) return false;
+            const top = target.getBoundingClientRect().top + window.scrollY - 12;
+            window.scrollTo({ top, behavior: 'auto' });
+            didScrollToLyrics = true;
+            return true;
+        };
+
+        if (!tryScrollToLyrics()) {
+            const observer = new MutationObserver(() => {
+                if (tryScrollToLyrics()) observer.disconnect();
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+            setTimeout(() => { tryScrollToLyrics(); }, 4000);
+        }
 
         // ---------------------
         // Dark Mode Toggle
