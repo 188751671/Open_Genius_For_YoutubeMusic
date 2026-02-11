@@ -83,15 +83,11 @@
             if (geniusTab && !geniusTab.closed) {
                 // Reuse the already opened Genius tab
                 geniusTab.location.href = url;
-                // Try to return focus to the current (YouTube) tab
+                // return focus to the current (YouTube) tab
                 window.focus();
             } else {
                 // Open a new tab and store the reference
                 geniusTab = window.open(url, 'genius_tab');
-                // Attempt to remove focus from the new tab and bring back YouTube
-                try {
-                    geniusTab.blur();
-                } catch (e) { /* ignore if not allowed */ }
                 window.focus();
             }
         }
