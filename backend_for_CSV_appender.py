@@ -64,7 +64,12 @@ def validate_genius_url(url, youtube_title):
             return False, None
 
         # 如果可以成功获取页面
-        response = requests.get(url)
+        response = requests.get(
+            url,
+            # 模拟用户浏览器 给Genius发请求, 避免被检测为脚本 而拒绝
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=10
+        )
         if response.status_code != 200:
             return False, None
         
@@ -122,16 +127,18 @@ def update_github_csv(video_id, genius_slug):
     response = requests.put(api_url, headers=headers, json=data)
     return response.status_code in (200, 201), f"成功添加: {genius_slug}"
 
+def cors_json(payload, status=200):
+    resp = jsonify(payload)
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    resp.headers['Access-Control-Allow-Methods'] = 'POST, GET, OPTIONS'
+    resp.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return resp, status
+
 @app.route('/', methods=['POST', 'OPTIONS'])
 def open_genius():
     # 处理预检请求
     if request.method == "OPTIONS":
-        response = jsonify({'status': 'success'})
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Methods', 'POST')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-        response.headers.add('Access-Control-Max-Age', '3600')
-        return response
+        return cors_json({'status': 'success'}, 200)
 
     # 获取JSON格式的表单数据
     try:
@@ -140,11 +147,11 @@ def open_genius():
         genius_url = form.get('genius_url')
     except Exception as e:
         logger.error(f"解析请求数据错误: {e}")
-        return jsonify({'error': '无效的请求数据'}), 400
+        return cors_json({'error': '无效的请求数据'}, 400)
 
     if not youtube_url or not genius_url:
         logger.warning("请求中缺少URL")
-        return jsonify({'error': '请求中缺少URL'}), 400
+        return cors_json({'error': '请求中缺少URL'}, 400)
 
     start_time = time.time()
     yt_valid, video_id, youtube_title = validate_youtube_url(youtube_url)
@@ -152,7 +159,7 @@ def open_genius():
     
     if not yt_valid:
         logger.warning(f"无效的YouTube URL: {youtube_url}")
-        return jsonify({'error': '无效的YouTube URL'}), 400
+        return cors_json({'error': 'invalid YouTube URL'}, 400)
 
     start_time = time.time()
     genius_valid, genius_slug = validate_genius_url(genius_url, youtube_title)
@@ -160,7 +167,7 @@ def open_genius():
     
     if not genius_valid:
         logger.warning(f"无效的Genius URL: {genius_url}")
-        return jsonify({'error': '无效的Genius URL'}), 400
+        return cors_json({'error': 'invalid Genius URL'}, 400)
 
     start_time = time.time()
     success, msg = update_github_csv(video_id, genius_slug)
@@ -168,21 +175,20 @@ def open_genius():
     
     if not success:
         logger.error(f"更新CSV失败: {msg}")
-        return jsonify({'error': msg}), 500
+        return cors_json({'error': f'更新CSV失败: {msg}'}, 500)
 
     # 返回成功响应
-    response = jsonify({'message': msg})
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    return response
+    return cors_json({'message': msg}, 200)
 
-# 添加健康检查路由
+
+# 添加健康检查路由 (直接打开API地址  spomatching.com/api/Open_Genius_For_YoutubeMusic  出现以下状态信息)
 @app.route('/', methods=['GET'])
 def health_check():
-    return jsonify({
+    return cors_json({
         'status': 'online',
         'service': 'Open_Genius_For_YoutubeMusic',
         'version': '1.0'
-    })
+    }, 200)
 
 
 if __name__ == '__main__':
