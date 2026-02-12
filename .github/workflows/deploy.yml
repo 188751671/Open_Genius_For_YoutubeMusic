@@ -10,12 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      OPEN_GENIUS_FOR_YOUTUBEMUSIC_ACCESS_TOKEN: ${{ secrets.OPEN_GENIUS_FOR_YOUTUBEMUSIC_ACCESS_TOKEN }}
       IDC365_SSH_PRIVATE_KEY: ${{ secrets.IDC365_SSH_PRIVATE_KEY }}
       
     steps:
-      - run: echo "$OPEN_GENIUS_FOR_YOUTUBEMUSIC_ACCESS_TOKEN"
-
       - uses: actions/checkout@v4
 
       - name: Install rsync
@@ -49,6 +46,7 @@ jobs:
         # file at current working directory
         # username @ IP @ file_destination (path or path+NewFileName)
 
-      - name: restart Open_Genius_For_YoutubeMusic systemd service
+      - name: Restart Open_Genius_For_YoutubeMusic service on server
         run: |
-          sudo systemctl restart  Open_Genius_For_YoutubeMusic
+          ssh -i ~/.ssh/IDC365_PrivateKey -p 23936 root@223.254.131.143 \
+            "systemctl restart Open_Genius_For_YoutubeMusic"
