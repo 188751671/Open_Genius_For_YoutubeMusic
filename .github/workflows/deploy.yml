@@ -1,6 +1,9 @@
 name: Deploy
 
-on: push
+on:
+  push:
+    paths:
+      - backend_for_CSV_appender.py
 
 jobs:
   deploy:
@@ -8,6 +11,44 @@ jobs:
 
     env:
       OPEN_GENIUS_FOR_YOUTUBEMUSIC_ACCESS_TOKEN: ${{ secrets.OPEN_GENIUS_FOR_YOUTUBEMUSIC_ACCESS_TOKEN }}
-
+      IDC365_SSH_PRIVATE_KEY: ${{ secrets.IDC365_SSH_PRIVATE_KEY }}
+      
     steps:
       - run: echo "$OPEN_GENIUS_FOR_YOUTUBEMUSIC_ACCESS_TOKEN"
+
+      - uses: actions/checkout@v4
+
+      - name: Install rsync
+        run: sudo apt-get update && sudo apt-get install -y rsync
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+
+          echo "$IDC365_SSH_PRIVATE_KEY" > ~/.ssh/IDC365_PrivateKey
+          # copy-save IDC365 private key (stored as a GitHub secret) to the runner's
+          
+          chmod 600 ~/.ssh/IDC365_PrivateKey
+          # Locks down the key file permissions so SSH will accept it.
+          
+          ssh-keyscan -p 23936 -H 223.254.131.143 >> ~/.ssh/known_hosts
+
+        # put host_key(sth like 223.254.131.143 ) into the VM's SSH knowns_hosts  
+        # to avoid the interactive “Are you sure you want to continue connecting?” prompt.
+
+      - name: Upload file
+        run: |                  # In YAML, | means a literal multiline block string.
+          rsync -avz \
+            -e "ssh -p 23936 -i ~/.ssh/IDC365_PrivateKey" \
+            backend_for_CSV_appender.py \
+            root@223.254.131.143:/root/python_programs/Open_Genius_For_YoutubeMusic/main.py
+
+        # -e tells rsync to connect via ssh with: 
+        #     -i ~/.ssh/IDC365_PrivateKey (which private key to use)
+        #     -p 23936              (which SSH port to use)
+        # file at current working directory
+        # username @ IP @ file_destination (path or path+NewFileName)
+
+      - name: restart Open_Genius_For_YoutubeMusic systemd service
+        run: |
+          sudo systemctl restart  Open_Genius_For_YoutubeMusic

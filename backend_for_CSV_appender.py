@@ -1,4 +1,5 @@
 from urllib.parse import urlparse, parse_qs
+import os
 import base64
 import time
 import logging
@@ -13,10 +14,13 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger()
 
 # GitHub配置
-GITHUB_TOKEN = '..........'
+GITHUB_TOKEN = os.getenv('ACCESS_TOKEN_FOR_OPEN_GENIUS_FOR_YOUTUBEMUSIC')
 REPO_OWNER = '188751671'
 REPO_NAME = 'Open_Genius_For_YoutubeMusic'
 CSV_FILE_PATH = 'videoID_To_GeniusURL.csv'
+
+if not GITHUB_TOKEN:
+    raise RuntimeError('Missing ACCESS_TOKEN_FOR_OPEN_GENIUS_FOR_YOUTUBEMUSIC environment variable')
 
 # 创建Flask应用
 app = Flask(__name__)
