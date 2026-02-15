@@ -77,18 +77,15 @@
             return skipHeader ? rows.slice(1) : rows;
         }
 
-
-        let geniusTab = null;
         function openGeniusPage(url) {
-            if (geniusTab && !geniusTab.closed) {
-                // Reuse the already opened Genius tab
-                geniusTab.location.href = url;
+            // Always target the named tab instead of keeping a fragile in-memory handle.
+            const geniusWindow = window.open('', 'genius_tab');
+            if (geniusWindow) {
+                geniusWindow.location.replace(url);
                 // return focus to the current (YouTube) tab
                 window.focus();
             } else {
-                // Open a new tab and store the reference
-                geniusTab = window.open(url, 'genius_tab');
-                window.focus();
+                console.warn('Could not open or retarget genius_tab (popup may be blocked).');
             }
         }
 
@@ -125,6 +122,9 @@
     // Code for Genius pages
     // ---------------------
     else if (host.includes('genius.com')) {
+        // set the tab name again. Sometimes we navigate on the Genius page and it changes the window name.
+        window.name = 'genius_tab';
+
         const style = document.createElement('style');
         style.textContent = `
         /* 极简：单列居中，聚焦歌词 */
