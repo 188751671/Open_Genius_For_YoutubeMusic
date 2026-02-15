@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Open_Genius_For_YoutubeMusic
 // @namespace    http://tampermonkey.net/
-// @version      3.0
+// @version      3.2
 // @description  Automatically opens the Genius page from YouTube and adjusts the Genius layout and adds a dark mode toggle for Genius.
 // @author       Ace
 // @match        https://www.youtube.com/watch*
@@ -11,6 +11,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_registerMenuCommand
+// @grant        GM_addValueChangeListener
 // @connect      raw.githubusercontent.com
 // ==/UserScript==
 
@@ -114,6 +115,10 @@
             });
         }
 
+        GM_registerMenuCommand('Toggle Genius Dark Mode', () => {
+            GM_setValue('darkModeChangedSignal', Date.now());
+        });
+
         console.log('YouTube Script is starting...');
         setInterval(checkAndOpenLyrics, CHECK_INTERVAL);
     }
@@ -176,19 +181,18 @@
         // ---------------------
         // Dark Mode Toggle
         // ---------------------
-        let darkModeEnabled = GM_getValue('darkMode', false);
-
         const darkModeStyles = `
             body { background-color: #292929; color: #BAB7BA; }
             .header { background-color: #1f1f1f; }
             .jAzSMw, .cNCMgo { background-color: #333333!important; color: #BAB7BA; }
             .cNXXxk, .dddWnX, .hwdUNy { color: #BAB7BA !important; }
         `;
-
-
         const darkModeStyleElement = document.createElement('style');
         darkModeStyleElement.textContent = darkModeStyles;
 
+
+        // Executed code every time page opens
+        let darkModeEnabled = GM_getValue('darkMode', false);
         function applyDarkMode(state) {
             if (state) {
                 document.head.appendChild(darkModeStyleElement);
@@ -198,14 +202,26 @@
                 }
             }
         }
-
         applyDarkMode(darkModeEnabled);
 
-        GM_registerMenuCommand(darkModeEnabled ? 'Disable Dark Mode' : 'Enable Dark Mode', () => {
-            darkModeEnabled = !darkModeEnabled;
-            GM_setValue('darkMode', darkModeEnabled);
-            applyDarkMode(darkModeEnabled);
-            location.reload();
+
+
+
+        function toggleDarkMode(){
+            const nextState = !GM_getValue('darkMode', false);
+            GM_setValue('darkMode', nextState);
+            applyDarkMode(nextState);
+            console.log(`Genius Dark Mode ${nextState ? 'enabled' : 'disabled'}.`);
+        }
+
+        // UI Button regis, not executed code
+        GM_registerMenuCommand('Toggle Dark Mode', () => {
+            toggleDarkMode();
+        });
+
+        // listen to Youtube's Toggle button
+        GM_addValueChangeListener('darkModeChangedSignal', () => {
+            toggleDarkMode();
         });
     }
 
