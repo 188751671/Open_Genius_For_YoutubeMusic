@@ -119,6 +119,26 @@
             GM_setValue('darkModeChangedSignal', Date.now());
         });
 
+        GM_registerMenuCommand('Update CSV', () => {
+            GM_xmlhttpRequest({
+                method: 'GET',
+                url: CSV_URL,
+                onload: function(response) {
+                    console.log('New Retrieved CSV:', response.responseText);
+                    try {
+                        const data = parseCSV(response.responseText, true);
+                        GM_setValue(CACHE_KEY, data);
+                        GM_setValue(CACHE_TIMESTAMP_KEY, Date.now());
+                    } catch (e) {
+                        console.error('Error parsing CSV:', e);
+                    }
+                },
+                onerror: function(error) {
+                    console.error('Error fetching mapping:', error);
+                }
+            });
+        });
+
         console.log('YouTube Script is starting...');
         setInterval(checkAndOpenLyrics, CHECK_INTERVAL);
     }
