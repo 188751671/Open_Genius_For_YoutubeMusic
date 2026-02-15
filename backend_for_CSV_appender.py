@@ -28,7 +28,19 @@ app = Flask(__name__)
 def validate_youtube_url(url):
     """验证YouTube URL并返回元组 (is_valid, video_id, video_title)"""
     try:
-        parsed = urlparse(url)
+        if not isinstance(url, str):
+            return False, None, None
+
+        normalized_url = url.strip()
+        if not normalized_url:
+            return False, None, None
+        if '://' not in normalized_url:
+            if normalized_url.startswith('www.'):
+                normalized_url = f'https://{normalized_url}'
+            else:
+                normalized_url = f'https://www.{normalized_url}'
+
+        parsed = urlparse(normalized_url)
         if parsed.netloc not in ['www.youtube.com', 'youtube.com']:
             return False, None, None
             
@@ -39,7 +51,7 @@ def validate_youtube_url(url):
             return False, None, None
             
         # 通过oEmbed API检查
-        oembed_url = f'https://www.youtube.com/oembed?url={url}&format=json'
+        oembed_url = f'https://www.youtube.com/oembed?url={normalized_url}&format=json'
         response = requests.get(oembed_url)
         
         if response.status_code == 200:
