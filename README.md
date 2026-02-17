@@ -22,3 +22,7 @@ https://www.youtube.com/watch?v=OblL026SvD4
 https://www.youtube.com/watch?v=7QCn2Jn1sPY
 
 https://www.youtube.com/watch?v=DfCdkyQyaJ8
+
+
+
+[Server Status check](https://spomatching.com/api/Open_Genius_For_YoutubeMusic)
